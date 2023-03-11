@@ -127,3 +127,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.Rproj.user
+src/.DS_Store
+src/python/.DS_Store
+src/R/.DS_Store
+data/.DS_Store
+data/definitions/.DS_Store
+data/legislation/.DS_Store
+data/legislation/Brazil/.DS_Store
+data/legislation/Philippines/.DS_Store

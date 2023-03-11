@@ -16,7 +16,7 @@ pacman::p_load(tidyverse, readxl, openxlsx, RDS, scales, knitr, kableExtra,
                grid, gridExtra, patchwork, ggpubr, lubridate, plyr)
 
 # directories
-wd = getwd()
+wd = "/Users/janinedevera/Documents/School/MDS 2021-2023/Thesis/multilabel-legal-text-classification-CIA"
 pathdata = paste0(wd, "/data")
 
 # chart template
@@ -54,9 +54,12 @@ charts.theme <- theme(axis.title.y.left = element_text(size = 12, margin = margi
 
 ```{r, include = FALSE}
 text <- read.csv(paste0(pathdata, "/legal_texts_pipeline.csv"))
+defs <- read.csv(paste0(pathdata, "/oecd_definitions_preprocess.csv"))
 ```
 
-Density plot: legal text
+## LEGAL TEXT
+
+### Distribution of paragraph lengths
 ```{r}
 text %>% filter(length < 500) %>% nrow()
 ```
@@ -92,6 +95,7 @@ laws <- text %>%
          country = str_extract(file_name, "^[A-Z]{2}"))
 ```
 
+### Lengths of laws 
 ```{r}
 plot2 <- ggplot(laws %>% filter(counts < 500), aes(x=fct_reorder(law, counts), y=counts, label=country)) +
   geom_point(stat='identity', fill="black", size=3, aes(color = country))  +
@@ -114,5 +118,96 @@ plot2
 
 ggsave(filename="plot2.png", plot=plot2, device="png", 
        path=paste0(wd, "/src/R/charts/"), width = 10, height = 8)
+```
+
+### Distribution of legislation length 
+```{r}
+plot3 <- ggplot(laws %>% filter(counts < 500), aes(x = counts)) +
+    geom_histogram(fill = "#FF781F", bins = 10) + 
+    #geom_bar(aes(fill = depth), width = 0.5, stat = "identity", position = "dodge") +
+    charts.theme + 
+    xlab("Length") +
+    ylab("Count") +
+    #scale_x_continuous(limits = c(0,80), breaks = c(0, 10, 20, 30 , 40, 50, 60, 70, 80)) +
+    theme(axis.text.x = element_text(size = 12, angle = 0, vjust = 0.5),
+          panel.grid.major.x = element_line(color = "#d4d4d4", linetype = "dotted")) +
+    labs(title = "Distribution by Length of Laws",
+         subtitle = "Legislation from Philippines and Singapore",
+         caption = "For visualization purposes outliers with > 500 paragraphs have been removed.")
+plot3
+
+ggsave(filename="plot3.png", plot=plot3, device="png", 
+       path=paste0(wd, "/src/R/charts/"), width = 10, height = 6)
+```
+
+### Summary table 
+```{r}
+paras <- laws %>% 
+  group_by(country) %>%
+  dplyr::summarise('# paras' = sum(counts))
+paras
+
+lgs <- laws %>% 
+  group_by(country) %>%
+  dplyr::summarise('# laws' = n())
+lgs
+
+min <- laws %>% 
+  group_by(country) %>%
+  dplyr::summarise('min length' = min(counts))
+min 
+
+max <- laws %>% 
+  group_by(country) %>%
+  dplyr::summarise('max length' = max(counts))
+max 
+
+summary <- plyr::join_all(list(lgs, paras, min, max), by = 'country', type = 'full')
+summary
+```
+
+## DEFINITIONS 
+
+### Distribution of paragraph lengths
+```{r}
+plot4 <- ggplot(defs, aes(x = length)) +
+    geom_histogram(fill = "#FF781F", bins = 11) + 
+    charts.theme + 
+    xlab("Length") +
+    ylab("Count") +
+    theme(axis.text.x = element_text(size = 12, angle = 0, vjust = 0.5),
+          panel.grid.major.x = element_line(color = "#d4d4d4", linetype = "dotted")) +
+    labs(title = "Distribution by Length of Paragraph",
+         subtitle = "OECD Definitions of Competition Restrictions")
+plot4
+
+ggsave(filename="plot4.png", plot=plot4, device="png", 
+       path=paste0(wd, "/src/R/charts/"), width = 10, height = 6)
+```
+
+### Lengths of definitions
+```{r}
+plot5 <- ggplot(defs %>% filter(Sub_Cat != ""), aes(x=fct_rev(Sub_Cat), y=length, label=Main_Cat)) +
+  geom_point(stat='identity', fill="black", size=3, aes(color = Main_Cat))  +
+  geom_segment(aes(y = 0, 
+                   x = Sub_Cat, 
+                   yend = length, 
+                   xend = Sub_Cat, 
+                   color = Main_Cat),
+               size = 1) +
+  charts.theme + 
+  xlab("") +
+  ylab("") +
+  scale_color_manual(values = c("#24439F","#FF781F", "#24439F","#FF781F")) + 
+  #scale_y_continuous(labels = label_percent(accuracy = 1L)) + 
+  labs(title = "Length of OECD Definitions",
+       subtitle = "number of words") +
+  guides(color = FALSE) + 
+  coord_flip()
+plot5
+
+ggsave(filename="plot5.png", plot=plot5, device="png", 
+       path=paste0(wd, "/src/R/charts/"), width = 10, height = 8)
+
 ```
 

@@ -1,0 +1,118 @@
+---
+title: "Data Descriptives"
+output: html_notebook
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, 
+                      warning = FALSE, 
+                      error = FALSE, 
+                      message = FALSE)
+```
+
+```{r, include = FALSE}
+# packages
+pacman::p_load(tidyverse, readxl, openxlsx, RDS, scales, knitr, kableExtra,
+               grid, gridExtra, patchwork, ggpubr, lubridate, plyr)
+
+# directories
+wd = getwd()
+pathdata = paste0(wd, "/data")
+
+# chart template
+charts.theme <- theme(axis.title.y.left = element_text(size = 12, margin = margin(r = 15)),
+                      axis.title.y.right = element_text(size = 12, margin = margin(l = 15)),
+                      axis.title.x = element_text(size = 12, margin = margin(t = 15)),
+                      #axis.text.x = element_text(size = 12, angle = 90, vjust = 0.5),
+                      axis.text.x = element_text(size = 12),
+                      axis.text.y = element_text(size = 12),
+                      axis.ticks = element_blank(),
+                      #axis.line.x = element_line("black", size = 0.5), 
+                      #axis.line.y = element_line("black", size = 0.5),
+                      axis.line.x = element_line("transparent", size = 0.5), 
+                      axis.line.y = element_line("transparent", size = 0.5),
+                      panel.border = element_rect(color = "#a3a3a3", fill = "transparent"),
+                      panel.background = element_rect(fill = "white", color = "white"),
+                      #panel.grid.major = element_line(color = "white"),
+                      #panel.grid.minor = element_line(color = "white"),
+                      panel.grid.major = element_line(color = "#d4d4d4", linetype = "dotted"),
+                      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+                      plot.subtitle = element_text(size = 10, face = "italic", hjust = 0.5, margin = margin(b = 15)),
+                      legend.position = "bottom",
+                      legend.box = "vertical",
+                      legend.box.margin = margin(b = 15),
+                      legend.margin = margin(r = 10),
+                      legend.background = element_rect(fill = "transparent"),
+                      legend.spacing.x = unit(0.4, "cm"),
+                      legend.key = element_blank(),
+                      legend.title = element_blank(),
+                      legend.text = element_text(size = 12),
+                      plot.caption = element_text(size = 9, hjust = 0, face = "italic"),
+                      strip.background = element_rect(fill = "transparent"),
+                      strip.text = element_text(size = 12))
+```
+
+```{r, include = FALSE}
+text <- read.csv(paste0(pathdata, "/legal_texts_pipeline.csv"))
+```
+
+Density plot: legal text
+```{r}
+text %>% filter(length < 500) %>% nrow()
+```
+
+```{r}
+plot1 <- ggplot(text %>% filter(length < 500), aes(x = length)) +
+    geom_histogram(fill = "#FF781F") + 
+    #geom_bar(aes(fill = depth), width = 0.5, stat = "identity", position = "dodge") +
+    charts.theme + 
+    xlab("Length") +
+    ylab("Count") +
+    #scale_x_continuous(limits = c(0,80), breaks = c(0, 10, 20, 30 , 40, 50, 60, 70, 80)) +
+    theme(axis.text.x = element_text(size = 12, angle = 0, vjust = 0.5),
+          panel.grid.major.x = element_line(color = "#d4d4d4", linetype = "dotted")) +
+    labs(title = "Distribution by Length of Paragraph",
+         subtitle = "Legislation from Philippines and Singapore",
+         caption = "For visualization purposes outliers with > 500 words have been removed.")
+plot1
+
+ggsave(filename="plot1.png", plot=plot1, device="png", 
+       path=paste0(wd, "/src/R/charts/"), width = 10, height = 6)
+```
+
+```{r}
+text %>% select(file_name) %>% unique() %>% nrow()
+```
+
+```{r}
+laws <- text %>% 
+  group_by(file_name) %>%
+  dplyr::summarise(counts = n()) %>% 
+  mutate(law = str_replace(file_name, "^[A-Z]{2}_", ""),
+         country = str_extract(file_name, "^[A-Z]{2}"))
+```
+
+```{r}
+plot2 <- ggplot(laws %>% filter(counts < 500), aes(x=fct_reorder(law, counts), y=counts, label=country)) +
+  geom_point(stat='identity', fill="black", size=3, aes(color = country))  +
+  geom_segment(aes(y = 0, 
+                   x = law, 
+                   yend = counts, 
+                   xend = law, 
+                   color = country),
+               size = 1) +
+  charts.theme + 
+  xlab("") +
+  ylab("") +
+  scale_color_manual(values = c("#3F5AAB", "#FF781F")) + 
+  #scale_y_continuous(labels = label_percent(accuracy = 1L)) + 
+  labs(title = "Length of Laws",
+       subtitle = "number of paragraphs",
+       caption = "For visualization purposes outliers with > 500 paragraphs have been removed.") +
+  coord_flip()
+plot2
+
+ggsave(filename="plot2.png", plot=plot2, device="png", 
+       path=paste0(wd, "/src/R/charts/"), width = 10, height = 8)
+```
+

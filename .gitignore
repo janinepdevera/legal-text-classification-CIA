@@ -136,3 +136,6 @@ data/definitions/.DS_Store
 data/legislation/.DS_Store
 data/legislation/Brazil/.DS_Store
 data/legislation/Philippines/.DS_Store
+.DS_Store
+.RData
+.Rhistory

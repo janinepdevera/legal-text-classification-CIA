@@ -123,7 +123,7 @@ ggsave(filename="plot2.png", plot=plot2, device="png",
 ### Distribution of legislation length 
 ```{r}
 plot3 <- ggplot(laws %>% filter(counts < 500), aes(x = counts)) +
-    geom_histogram(fill = "#FF781F", bins = 10) + 
+    geom_histogram(fill = "#FF781F", bins = 8) + 
     #geom_bar(aes(fill = depth), width = 0.5, stat = "identity", position = "dodge") +
     charts.theme + 
     xlab("Length") +

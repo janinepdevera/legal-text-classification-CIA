@@ -229,12 +229,14 @@ scores_legal_long <- scores_legal_w2v %>%
 ```{r}
 plotC1 <- ggplot(scores_legal_long %>% filter(!(category %in% c("A", "B", "C"))), 
                  aes(y = as.numeric(simscore), x = category)) +
+    geom_hline(yintercept = 0.7, color = "#787878") +
+      geom_hline(yintercept = 0.5, color = "#787878") +
     geom_violin(aes(fill = main_category)) + 
-    #geom_bar(aes(fill = depth), width = 0.5, stat = "identity", position = "dodge") +
     charts.theme + 
     xlab("Category") + 
     ylab("Similarity Score") +
     scale_fill_manual(values = c("#95101E", "#F1711B", "#FFE15D", "#234075")) + 
+    scale_y_continuous(limits = c(0.2, 0.9), breaks = c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)) +
     theme(axis.text.x = element_text(size = 12, angle = 0, vjust = 0.5),
           panel.grid.major.x = element_line(color = "#d4d4d4", linetype = "dotted")) +
     labs(title = "Distribution of Similarity Scores",
@@ -258,7 +260,6 @@ scores_glove_long <- scores_glove %>%
 plotC2 <- ggplot(scores_glove_long %>% filter(!(category %in% c("A", "B", "C"))), 
                  aes(y = as.numeric(simscore), x = category)) +
     geom_violin(aes(fill = main_category)) + 
-    #geom_bar(aes(fill = depth), width = 0.5, stat = "identity", position = "dodge") +
     charts.theme + 
     xlab("Category") + 
     ylab("Similarity Score") +

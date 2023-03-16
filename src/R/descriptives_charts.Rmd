@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = FALSE,
 ```{r, include = FALSE}
 # packages
 pacman::p_load(tidyverse, readxl, openxlsx, RDS, scales, knitr, kableExtra,
-               grid, gridExtra, patchwork, ggpubr, lubridate, plyr)
+               grid, gridExtra, patchwork, ggpubr, lubridate, plyr, ggridges)
 
 # directories
 wd = "/Users/janinedevera/Documents/School/MDS 2021-2023/Thesis/multilabel-legal-text-classification-CIA"
@@ -57,7 +57,7 @@ text <- read.csv(paste0(pathdata, "/legal_texts_pipeline.csv"))
 defs <- read.csv(paste0(pathdata, "/oecd_definitions_preprocess.csv"))
 ```
 
-## LEGAL TEXT
+## I. LEGAL TEXT
 
 ### Distribution of paragraph lengths
 ```{r}
@@ -65,7 +65,7 @@ text %>% filter(length < 500) %>% nrow()
 ```
 
 ```{r}
-plot1 <- ggplot(text %>% filter(length < 500), aes(x = length)) +
+plotA1 <- ggplot(text %>% filter(length < 500), aes(x = length)) +
     geom_histogram(fill = "#FF781F") + 
     #geom_bar(aes(fill = depth), width = 0.5, stat = "identity", position = "dodge") +
     charts.theme + 
@@ -77,9 +77,9 @@ plot1 <- ggplot(text %>% filter(length < 500), aes(x = length)) +
     labs(title = "Distribution by Length of Paragraph",
          subtitle = "Legislation from Philippines and Singapore",
          caption = "For visualization purposes outliers with > 500 words have been removed.")
-plot1
+plotA1
 
-ggsave(filename="plot1.png", plot=plot1, device="png", 
+ggsave(filename="plotA1.png", plot=plotA1, device="png", 
        path=paste0(wd, "/src/R/charts/"), width = 10, height = 6)
 ```
 
@@ -97,7 +97,7 @@ laws <- text %>%
 
 ### Lengths of laws 
 ```{r}
-plot2 <- ggplot(laws %>% filter(counts < 500), aes(x=fct_reorder(law, counts), y=counts, label=country)) +
+plotA2 <- ggplot(laws %>% filter(counts < 500), aes(x=fct_reorder(law, counts), y=counts, label=country)) +
   geom_point(stat='identity', fill="black", size=3, aes(color = country))  +
   geom_segment(aes(y = 0, 
                    x = law, 
@@ -114,15 +114,15 @@ plot2 <- ggplot(laws %>% filter(counts < 500), aes(x=fct_reorder(law, counts), y
        subtitle = "number of paragraphs",
        caption = "For visualization purposes outliers with > 500 paragraphs have been removed.") +
   coord_flip()
-plot2
+plotA2
 
-ggsave(filename="plot2.png", plot=plot2, device="png", 
+ggsave(filename="plotA2.png", plot=plotA2, device="png", 
        path=paste0(wd, "/src/R/charts/"), width = 10, height = 8)
 ```
 
 ### Distribution of legislation length 
 ```{r}
-plot3 <- ggplot(laws %>% filter(counts < 500), aes(x = counts)) +
+plotA3 <- ggplot(laws %>% filter(counts < 500), aes(x = counts)) +
     geom_histogram(fill = "#FF781F", bins = 8) + 
     #geom_bar(aes(fill = depth), width = 0.5, stat = "identity", position = "dodge") +
     charts.theme + 
@@ -134,9 +134,9 @@ plot3 <- ggplot(laws %>% filter(counts < 500), aes(x = counts)) +
     labs(title = "Distribution by Length of Laws",
          subtitle = "Legislation from Philippines and Singapore",
          caption = "For visualization purposes outliers with > 500 paragraphs have been removed.")
-plot3
+plotA3
 
-ggsave(filename="plot3.png", plot=plot3, device="png", 
+ggsave(filename="plotA3.png", plot=plotA3, device="png", 
        path=paste0(wd, "/src/R/charts/"), width = 10, height = 6)
 ```
 
@@ -166,11 +166,11 @@ summary <- plyr::join_all(list(lgs, paras, min, max), by = 'country', type = 'fu
 summary
 ```
 
-## DEFINITIONS 
+## II. LABEL DEFINITIONS 
 
 ### Distribution of paragraph lengths
 ```{r}
-plot4 <- ggplot(defs, aes(x = length)) +
+plotB1 <- ggplot(defs, aes(x = length)) +
     geom_histogram(fill = "#FF781F", bins = 11) + 
     charts.theme + 
     xlab("Length") +
@@ -179,15 +179,15 @@ plot4 <- ggplot(defs, aes(x = length)) +
           panel.grid.major.x = element_line(color = "#d4d4d4", linetype = "dotted")) +
     labs(title = "Distribution by Length of Paragraph",
          subtitle = "OECD Definitions of Competition Restrictions")
-plot4
+plotB1
 
-ggsave(filename="plot4.png", plot=plot4, device="png", 
+ggsave(filename="plotB1.png", plot=plotB1, device="png", 
        path=paste0(wd, "/src/R/charts/"), width = 10, height = 6)
 ```
 
 ### Lengths of definitions
 ```{r}
-plot5 <- ggplot(defs %>% filter(Sub_Cat != ""), aes(x=fct_rev(Sub_Cat), y=length, label=Main_Cat)) +
+plotB2 <- ggplot(defs %>% filter(Sub_Cat != ""), aes(x=fct_rev(Sub_Cat), y=length, label=Main_Cat)) +
   geom_point(stat='identity', fill="black", size=3, aes(color = Main_Cat))  +
   geom_segment(aes(y = 0, 
                    x = Sub_Cat, 
@@ -204,10 +204,73 @@ plot5 <- ggplot(defs %>% filter(Sub_Cat != ""), aes(x=fct_rev(Sub_Cat), y=length
        subtitle = "number of words") +
   guides(color = FALSE) + 
   coord_flip()
-plot5
+plotB2
 
-ggsave(filename="plot5.png", plot=plot5, device="png", 
+ggsave(filename="plotB2.png", plot=plotB2, device="png", 
        path=paste0(wd, "/src/R/charts/"), width = 10, height = 8)
 
+```
+
+## III. BASELINE SCORES 
+```{r}
+scores_legal_w2v <- read.csv(paste0(pathdata, "/scores/sim_scores_legalw2v.csv"))
+scores_glove <- read.csv(paste0(pathdata, "/scores/sim_scores_glove.csv"))
+```
+
+```{r}
+scores_legal_long <- scores_legal_w2v %>% 
+  pivot_longer(cols = A:D3,
+               names_to = "category",
+               values_to = "simscore") %>% 
+  mutate(main_category = substring(category, 1, 1))
+```
+
+
+```{r}
+plotC1 <- ggplot(scores_legal_long %>% filter(!(category %in% c("A", "B", "C"))), 
+                 aes(y = as.numeric(simscore), x = category)) +
+    geom_violin(aes(fill = main_category)) + 
+    #geom_bar(aes(fill = depth), width = 0.5, stat = "identity", position = "dodge") +
+    charts.theme + 
+    xlab("Category") + 
+    ylab("Similarity Score") +
+    scale_fill_manual(values = c("#95101E", "#F1711B", "#FFE15D", "#234075")) + 
+    theme(axis.text.x = element_text(size = 12, angle = 0, vjust = 0.5),
+          panel.grid.major.x = element_line(color = "#d4d4d4", linetype = "dotted")) +
+    labs(title = "Distribution of Similarity Scores",
+         subtitle = "Word embeddings from Legal Word2Vec") + 
+    guides(fill = FALSE)
+plotC1
+
+ggsave(filename="plotC1.png", plot=plotC1, device="png", 
+       path=paste0(wd, "/src/R/charts/"), width = 10, height = 6)
+```
+
+```{r}
+scores_glove_long <- scores_glove %>% 
+  pivot_longer(cols = A:D3,
+               names_to = "category",
+               values_to = "simscore") %>% 
+  mutate(main_category = substring(category, 1, 1))
+```
+
+```{r}
+plotC2 <- ggplot(scores_glove_long %>% filter(!(category %in% c("A", "B", "C"))), 
+                 aes(y = as.numeric(simscore), x = category)) +
+    geom_violin(aes(fill = main_category)) + 
+    #geom_bar(aes(fill = depth), width = 0.5, stat = "identity", position = "dodge") +
+    charts.theme + 
+    xlab("Category") + 
+    ylab("Similarity Score") +
+    scale_fill_manual(values = c("#95101E", "#F1711B", "#FFE15D", "#234075")) + 
+    theme(axis.text.x = element_text(size = 12, angle = 0, vjust = 0.5),
+          panel.grid.major.x = element_line(color = "#d4d4d4", linetype = "dotted")) +
+    labs(title = "Distribution of Similarity Scores",
+         subtitle = "Word embeddings from GloVe") + 
+    guides(fill = FALSE)
+plotC2
+
+ggsave(filename="plotC2.png", plot=plotC2, device="png", 
+       path=paste0(wd, "/src/R/charts/"), width = 10, height = 6)
 ```
 

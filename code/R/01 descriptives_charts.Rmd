@@ -225,7 +225,7 @@ scores_legal_long <- scores_legal_w2v %>%
   mutate(main_category = substring(category, 1, 1))
 ```
 
-
+### Distribution of similarity scores (GloVe)
 ```{r}
 plotC1 <- ggplot(scores_legal_long %>% filter(!(category %in% c("A", "B", "C"))), 
                  aes(y = as.numeric(simscore), x = category)) +
@@ -256,6 +256,7 @@ scores_glove_long <- scores_glove %>%
   mutate(main_category = substring(category, 1, 1))
 ```
 
+### Distribution of similarity scores (LegalW2V)
 ```{r}
 plotC2 <- ggplot(scores_glove_long %>% filter(!(category %in% c("A", "B", "C"))), 
                  aes(y = as.numeric(simscore), x = category)) +
@@ -273,5 +274,55 @@ plotC2
 
 ggsave(filename="plotC2.png", plot=plotC2, device="png", 
        path=paste0(wd, "/src/R/charts/"), width = 10, height = 6)
+```
+
+### Dim reduced embeddings (Legal W2V)
+```{r}
+embed_red_legal <- read.csv(paste0(pathdata, "/02 embed_dim_reduced_legal.csv"))
+```
+
+```{r}
+plotC3 <- ggplot(embed_red_legal, aes(x, y)) +
+geom_point(aes(color = category, size=category, alpha = category, shape = category)) +
+scale_color_manual(values = c("#95101E", "#F1711B", "#FFE15D", "#e660c7", "#8dd2d9")) +
+scale_size_manual(values = c(3, 3, 3, 3, 1.3)) + 
+scale_alpha_manual(values = c(1, 1, 1, 1, 0.4)) + 
+scale_shape_manual(values = c(18, 18, 18, 18, 16)) + 
+charts.theme + 
+theme(panel.grid.major = element_line(color = "#d4d4d4"), 
+      legend.position = "right") + 
+guides(size = FALSE, alpha = FALSE, colour = guide_legend(override.aes = list(size=3))) + 
+labs(title = "Text and Label Embeddings in 2D Space",
+     subtitle = "Word embeddings from Legal Word2Vec")
+plotC3
+
+ggsave(filename="plotC3.png", plot=plotC3, device="png", 
+       path=paste0(wd, "/charts/"), width = 10, height = 6)
+```
+
+### Dim reduced embeddings
+```{r}
+embed_red_glove <- read.csv(paste0(pathdata, "/02 embed_dim_reduced_glove.csv"))
+```
+
+```{r}
+plotC4 <- ggplot(embed_red_glove, aes(x, y)) +
+geom_point(aes(color = category, size=category, alpha = category, shape = category)) +
+scale_color_manual(values = c("#95101E", "#F1711B", "#FFE15D", "#e660c7", "#8dd2d9")) +
+scale_size_manual(values = c(3, 3, 3, 3, 1.5)) + 
+scale_alpha_manual(values = c(1, 1, 1, 1, 0.4)) + 
+scale_shape_manual(values = c(18, 18, 18, 18, 16)) + 
+charts.theme + 
+theme(panel.grid.major = element_line(color = "#d4d4d4"), 
+      legend.position = "right") + 
+guides(size = FALSE, alpha = FALSE, colour = guide_legend(override.aes = list(size=3))) + 
+scale_y_continuous(limits = c(-1, 10), breaks = c(0, 2, 4, 6, 8, 10), labels = label_number(accuracy = 1)) + 
+scale_x_continuous(limits = c(-1, 10), breaks = c(0, 2, 4, 6, 8, 10), labels = label_number(accuracy = 1)) + 
+labs(title = "Text and Label Embeddings in 2D Space",
+     subtitle = "Word embeddings from GloVe")
+plotC4
+
+ggsave(filename="plotC4.png", plot=plotC4, device="png", 
+       path=paste0(wd, "/charts/"), width = 10, height = 6)
 ```
 

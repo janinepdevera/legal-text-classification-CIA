@@ -300,3 +300,9 @@ data/glove/glove.6B.200d.txt
 .gitignore
 data/glove/glove.6B.300d.txt
 models (backup)/
+data/definitions/oecd-guidelines.pdf
+.gitignore
+data/legislation/Brazil/oecd_annotations_ca.xlsx
+.gitignore
+data/legislation/Brazil/manual_annotations.xlsx
+data/legislation/Brazil/oecd_annotations_hp.xlsx

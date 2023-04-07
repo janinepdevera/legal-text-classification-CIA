@@ -13,7 +13,8 @@ knitr::opts_chunk$set(echo = FALSE,
 ```{r, include = FALSE}
 # packages
 pacman::p_load(tidyverse, readxl, openxlsx, RDS, scales, knitr, kableExtra,
-               grid, gridExtra, patchwork, ggpubr, lubridate, plyr, ggridges)
+               grid, gridExtra, patchwork, ggpubr, lubridate, plyr, ggridges,
+               qdap)
 
 # directories
 wd = "/Users/janinedevera/Documents/School/MDS 2021-2023/Thesis/multilabel-legal-text-classification-CIA"
@@ -53,19 +54,49 @@ charts.theme <- theme(axis.title.y.left = element_text(size = 12, margin = margi
 ```
 
 ```{r, include = FALSE}
-text <- read.csv(paste0(pathdata, "/legal_texts_pipeline.csv"))
-defs <- read.csv(paste0(pathdata, "/oecd_definitions_preprocess.csv"))
+text <- read.csv(paste0(pathdata, "/01 legal_texts_pipeline_stopwords.csv"))
+text_labeled <- read.csv(paste0(pathdata, "/01 legal_texts_with_labels_grouped.csv"))
+defs <- read.csv(paste0(pathdata, "/02 oecd_definitions_stopwords_grouped.csv"))
 ```
 
 ## I. LEGAL TEXT
 
 ### Distribution of paragraph lengths
 ```{r}
-text %>% filter(length < 500) %>% nrow()
+text_labeled <- text_labeled %>% 
+  mutate(country = "BR") %>% 
+  select(Law, country, Text)
+
+text <- text %>% 
+  select(file_name, country, text) %>% 
+  dplyr::rename(Law = file_name, Text = text)
+
+combined <- rbind(text_labeled, text) %>% 
+  dplyr::distinct(Text, .keep_all = TRUE) %>% 
+  mutate(word_count = str_count(Text, "\\w+"))
+  
 ```
 
 ```{r}
-plotA1 <- ggplot(text %>% filter(length < 500), aes(x = length)) +
+# number of unique legislation 
+combined %>% select(Law) %>% distinct() %>% nrow()
+
+```
+
+```{r}
+# number of unique labeled legislation 
+text_labeled %>% select(Text) %>% distinct() %>% nrow()
+```
+
+
+```{r}
+# number of paragraphs with word count > 500 
+combined %>% filter(word_count >= 500) %>% nrow()
+```
+
+
+```{r}
+plotA1 <- ggplot(combined %>% filter(word_count < 1000), aes(x = word_count)) +
     geom_histogram(fill = "#FF781F") + 
     #geom_bar(aes(fill = depth), width = 0.5, stat = "identity", position = "dodge") +
     charts.theme + 
@@ -74,13 +105,13 @@ plotA1 <- ggplot(text %>% filter(length < 500), aes(x = length)) +
     #scale_x_continuous(limits = c(0,80), breaks = c(0, 10, 20, 30 , 40, 50, 60, 70, 80)) +
     theme(axis.text.x = element_text(size = 12, angle = 0, vjust = 0.5),
           panel.grid.major.x = element_line(color = "#d4d4d4", linetype = "dotted")) +
-    labs(title = "Distribution by Length of Paragraph",
-         subtitle = "Legislation from Philippines and Singapore",
-         caption = "For visualization purposes outliers with > 500 words have been removed.")
+    labs(#title = "Distribution by Length of Paragraph",
+         #subtitle = "corpus of 175 pieces of legislation",
+         caption = "For visualization purposes outliers with > 1000 words have been removed.")
 plotA1
 
 ggsave(filename="plotA1.png", plot=plotA1, device="png", 
-       path=paste0(wd, "/src/R/charts/"), width = 10, height = 6)
+       path=paste0(wd, "/charts"), width = 10, height = 6)
 ```
 
 ```{r}
@@ -213,13 +244,13 @@ ggsave(filename="plotB2.png", plot=plotB2, device="png",
 
 ## III. BASELINE SCORES 
 ```{r}
-scores_legal_w2v <- read.csv(paste0(pathdata, "/scores/sim_scores_legalw2v.csv"))
-scores_glove <- read.csv(paste0(pathdata, "/scores/sim_scores_glove.csv"))
+scores_legal <- read.csv(paste0(pathdata, "/scores/01 sim_scores_glove_labeled.csv"))
+scores_glove <- read.csv(paste0(pathdata, "/scores/01 sim_scores_legalw2v_labeled.csv"))
 ```
 
 ```{r}
-scores_legal_long <- scores_legal_w2v %>% 
-  pivot_longer(cols = A:D3,
+scores_legal_long <- scores_legal %>% 
+  pivot_longer(cols = A:D,
                names_to = "category",
                values_to = "simscore") %>% 
   mutate(main_category = substring(category, 1, 1))
@@ -278,20 +309,28 @@ ggsave(filename="plotC2.png", plot=plotC2, device="png",
 
 ### Dim reduced embeddings (Legal W2V)
 ```{r}
-embed_red_legal <- read.csv(paste0(pathdata, "/02 embed_dim_reduced_legal.csv"))
+embed_red_legal <- read.csv(paste0(pathdata, "/scores/02 sim_scores_dim_reduced_legal.csv")) %>% 
+  mutate(Category = ifelse(Category == "", name, Category),
+         Type = ifelse(name %in% c("A", "B", "C", "D"), "Category", "Text"), 
+         Desc = ifelse(name == "A", "Range of suppliers",
+                 ifelse(name == "B", "Ability to compete",
+                  ifelse(name == "C", "Incentive to compete",
+                    ifelse(name == "D", "Choices and information", "")))))
 ```
 
+
 ```{r}
-plotC3 <- ggplot(embed_red_legal, aes(x, y)) +
-geom_point(aes(color = category, size=category, alpha = category, shape = category)) +
-scale_color_manual(values = c("#95101E", "#F1711B", "#FFE15D", "#e660c7", "#8dd2d9")) +
-scale_size_manual(values = c(3, 3, 3, 3, 1.3)) + 
-scale_alpha_manual(values = c(1, 1, 1, 1, 0.4)) + 
-scale_shape_manual(values = c(18, 18, 18, 18, 16)) + 
+plotC3 <- ggplot(embed_red_legal %>% filter(Category %in% c("A", "B")), aes(x, y, label = Desc)) +
+geom_jitter(aes(color = Category, size=Type, alpha = Type, shape = Type)) +
+geom_text() +
+scale_color_manual(values = c("#007db7", "#fdb515")) +
+scale_size_manual(values = c(5, 1.3)) + 
+scale_alpha_manual(values = c(1, 0.8)) + 
+scale_shape_manual(values = c(18, 16)) + 
 charts.theme + 
 theme(panel.grid.major = element_line(color = "#d4d4d4"), 
       legend.position = "right") + 
-guides(size = FALSE, alpha = FALSE, colour = guide_legend(override.aes = list(size=3))) + 
+guides(size = FALSE, alpha = FALSE, shape = FALSE, colour = guide_legend(override.aes = list(size=3))) + 
 labs(title = "Text and Label Embeddings in 2D Space",
      subtitle = "Word embeddings from Legal Word2Vec")
 plotC3
@@ -302,12 +341,12 @@ ggsave(filename="plotC3.png", plot=plotC3, device="png",
 
 ### Dim reduced embeddings
 ```{r}
-embed_red_glove <- read.csv(paste0(pathdata, "/02 embed_dim_reduced_glove.csv"))
+embed_red_glove <- read.csv(paste0(pathdata, "/scores/02 sim_scores_dim_reduced_glove.csv"))
 ```
 
 ```{r}
 plotC4 <- ggplot(embed_red_glove, aes(x, y)) +
-geom_point(aes(color = category, size=category, alpha = category, shape = category)) +
+geom_point(aes(color = Category, size=Category, alpha = Category, shape = Category)) +
 scale_color_manual(values = c("#95101E", "#F1711B", "#FFE15D", "#e660c7", "#8dd2d9")) +
 scale_size_manual(values = c(3, 3, 3, 3, 1.5)) + 
 scale_alpha_manual(values = c(1, 1, 1, 1, 0.4)) + 

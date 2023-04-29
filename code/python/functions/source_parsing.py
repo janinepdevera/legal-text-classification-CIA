@@ -6,7 +6,6 @@ import re
 import pdfplumber
 from pdfminer.high_level import extract_text
 from langdetect import detect, DetectorFactory
-from deep_translator import GoogleTranslator
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize

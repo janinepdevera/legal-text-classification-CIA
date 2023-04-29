@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = FALSE,
 # packages
 pacman::p_load(tidyverse, readxl, openxlsx, RDS, scales, knitr, kableExtra,
                grid, gridExtra, patchwork, ggpubr, lubridate, plyr, ggridges,
-               qdap)
+               vtable)
 
 # directories
 wd = "/Users/janinedevera/Documents/School/MDS 2021-2023/Thesis/multilabel-legal-text-classification-CIA"
@@ -63,6 +63,7 @@ defs <- read.csv(paste0(pathdata, "/02 oecd_definitions_stopwords_grouped.csv"))
 
 ### Distribution of paragraph lengths
 ```{r}
+# combined dataframe
 text_labeled <- text_labeled %>% 
   mutate(country = "BR") %>% 
   select(Law, country, Text)
@@ -80,24 +81,41 @@ combined <- rbind(text_labeled, text) %>%
 ```{r}
 # number of unique legislation 
 combined %>% select(Law) %>% distinct() %>% nrow()
-
 ```
+
+```{r}
+# number of unique paragraphs 
+combined %>% select(Text) %>% distinct() %>% nrow()
+```
+
 
 ```{r}
 # number of unique labeled legislation 
 text_labeled %>% select(Text) %>% distinct() %>% nrow()
 ```
 
+```{r}
+# number of laws by country
+combined %>%
+  distinct(country, Law) %>%
+  group_by(country) %>%
+  dplyr::summarise(count = n())
+```
 
 ```{r}
 # number of paragraphs with word count > 500 
 combined %>% filter(word_count >= 500) %>% nrow()
 ```
 
+```{r}
+# word count summary stats
+summary(combined$word_count)
+```
+
 
 ```{r}
 plotA1 <- ggplot(combined %>% filter(word_count < 1000), aes(x = word_count)) +
-    geom_histogram(fill = "#FF781F") + 
+    geom_histogram(fill = "#0C6291") + 
     #geom_bar(aes(fill = depth), width = 0.5, stat = "identity", position = "dodge") +
     charts.theme + 
     xlab("Length") +
